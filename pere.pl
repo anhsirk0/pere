@@ -33,8 +33,8 @@ my $w_logfile = "pere_log_" . localtime();
 $w_logfile =~ s/ /_/g; # replace spaces with underscores
 
 sub wanted {
-    my $name = $File::Find::name;
-    my $file = (split "/", $name)[-1];
+    my $file_name = $File::Find::name;
+    my $file = (split "/", $file_name)[-1];
 
     if ($file =~ /^\./) { return } # ignore hidden files/dirs
 
@@ -47,8 +47,12 @@ sub wanted {
 
     $pattern =~ s/\*/.*/g; # wildcard to regex
 
-    if (-f && $name =~ /^$pattern$/) {
-        push(@all_files, $name);
+    if (-f) {
+        if ($iname && $file =~ /^$pattern$/i) {
+            push(@all_files, $file);
+        } elsif ($name && $file =~ /^$pattern$/) {
+            push(@all_files, $file);
+        }
     }
 }
 
@@ -178,7 +182,7 @@ sub main {
 
     if ($revert) {
         revert_rename();
-    } elsif (! $name || $iname) {
+    } elsif (! $name && ! $iname) {
         print "Must specify -name or -iname to find files \n";
         exit;
     }
