@@ -21,6 +21,7 @@ my $logfile;
 my $keep_log;
 my $text;
 my $search;
+
 my $replace;
 my $name;
 my $iname;
@@ -39,13 +40,13 @@ sub wanted {
 
     my $pattern;
     if ($name) {
-	$pattern = $name;
+        $pattern = $name;
     } else {
-	$pattern = $iname;	
+        $pattern = $iname;
     }
-    
+
     $pattern =~ s/\*/.*/g; # wildcard to regex
-    
+
     if (-f && $name =~ /^$pattern$/) {
         push(@all_files, $name);
     }
@@ -55,14 +56,15 @@ sub rename_file {
     my ($file, $new_name) = @_;
 
     if (-f $new_name) { print "$new_name already exists \n"; return }
-    
+
     my $detail = "$file -> $new_name\n";
     if ($dry_run) { print $detail; return }
+
     if (move($file, $new_name)) {
-	$renamed_files_details .= $detail;
-	if ($verbose) { print $detail; }
-	$renamed_files_count++;
-    }    
+        $renamed_files_details .= $detail;
+        if ($verbose) { print $detail; }
+        $renamed_files_count++;
+    }
 }
 
 sub rename_by_numbering {
@@ -72,7 +74,7 @@ sub rename_by_numbering {
     # to overcome this we increment/decrement the range[1] variable
     # before renaming by numbering (see main sub);
     if (scalar @range > 1 && $range[0] == $range[1]) { return }
-    
+
     my  ($f_name, $f_ext) = @_;
     my $new_name = $text;
     $new_name =~ s/\{old\}/$f_name/g;
@@ -81,11 +83,11 @@ sub rename_by_numbering {
 
     my $file = $f_name . "." . $f_ext;
     rename_file($file, $new_name);
-    
+
     if (scalar @range > 1 && $range[0] > $range[1]) {
-	$range[0]--;
+        $range[0]--;
     } else {
-	$range[0]++;
+        $range[0]++;
     }
 }
 
@@ -104,21 +106,21 @@ sub rename_files {
     foreach my $f (@all_files) {
         my $file = (split "/", $f)[-1];
 
-	my ($f_name) = fileparse($file, qr/\.[^.]*/);
-	my $f_ext = (split /\./, $f)[-1];
+        my ($f_name) = fileparse($file, qr/\.[^.]*/);
+        my $f_ext = (split /\./, $f)[-1];
 
-	if ($search && $replace) {
-	    rename_by_search_replace($f_name, $f_ext);
-	} elsif (scalar @range > 0) {
-	    rename_by_numbering($f_name, $f_ext);
-	}
+        if ($search && $replace) {
+            rename_by_search_replace($f_name, $f_ext);
+        } elsif (scalar @range > 0) {
+            rename_by_numbering($f_name, $f_ext);
+        }
     }
 }
 
 sub start_rename {
     find({
-	wanted => \&wanted,
-	 }, getcwd);
+        wanted => \&wanted,
+         }, getcwd);
 
     rename_files();
 }
@@ -136,8 +138,8 @@ sub revert_rename {
     open(FH, '<' . $logfile) or die "Unable to open log file\n";
     while(<FH>) {
         my ($initial, $final) = split " -> ", $_;
-	chomp $final;
-	rename_file($final, $initial);
+        chomp $final;
+        rename_file($final, $initial);
     }
 }
 
@@ -162,47 +164,47 @@ sub main {
         "revert" => \$revert,
         "verbose" => \$verbose,
         "dry-run" => \$dry_run,
-	"logfile=s" => \$logfile,
+        "logfile=s" => \$logfile,
         "no-log" => \$keep_log,
-	"num|n=i{1,2}" => \@range,
-	"text|t=s" => \$text,
-	"search|s=s" => \$search,
-	"replace|r=s" => \$replace,
+        "num|n=i{1,2}" => \@range,
+        "text|t=s" => \$text,
+        "search|s=s" => \$search,
+        "replace|r=s" => \$replace,
         "name=s" => \$name,
         "iname=s" => \$iname
-	) or die("Error in command line arguments\n");
+        ) or die("Error in command line arguments\n");
 
     if ($help) { print_help(); exit }
 
     if ($revert) {
-	revert_rename();	
+        revert_rename();
     } elsif (! $name || $iname) {
-	print "Must specify -name or -iname to find files \n";
-	exit;
+        print "Must specify -name or -iname to find files \n";
+        exit;
     }
-    
+
     if (@range && ! $text) {
-	print "Must specify number and text pattern\n";
+        print "Must specify number and text pattern\n";
         print "Example: pere -f 'files*' -n 1 10 -t 'new_file_{num}'\n";
-	exit;
+        exit;
     } elsif (($search && ! $replace) || (! $search && $replace)) {
-	print "Must specify search text and replace text\n";
+        print "Must specify search text and replace text\n";
         print "Example: pere -name 'files*' -s 'old' -r 'new'\n";
-	
-	exit;
+
+        exit;
     }
 
     # to also include upper/lower bound; see rename_by_numbering sub;
     if (scalar @range > 1) {
-	if ($range[0] < $range[1]) {
-	    $range[1]++;
-	} else {
-	    $range[1]--;
-	}
+        if ($range[0] < $range[1]) {
+            $range[1]++;
+        } else {
+            $range[1]--;
+        }
     }
-    
+
     start_rename(); # find files and rename;
-    
+
     # write info to a file
     unless ($keep_log || $dry_run) {
         save_log();
